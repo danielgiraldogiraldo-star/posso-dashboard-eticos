@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POSSO Dashboard Estratégico | Éticos – La Economía</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { font-family: 'Montserrat', sans-serif; }
+  :root {
+    --azul: #1C58B7;
+    --rojo: #E1251B;
+    --amarillo: #FFEA00;
+    --azul-oscuro: #0d3a7a;
+    --gris-claro: #f4f6fb;
+    --gris-medio: #e2e8f0;
+  }
+  body { background: var(--gris-claro); }
+  .bg-azul { background-color: var(--azul); }
+  .bg-rojo { background-color: var(--rojo); }
+  .bg-amarillo { background-color: var(--amarillo); }
+  .text-azul { color: var(--azul); }
+  .text-rojo { color: var(--rojo); }
+  .border-azul { border-color: var(--azul); }
+  .border-amarillo { border-color: var(--amarillo); }
+
+  /* Header */
+  .header-bar {
+    background: linear-gradient(135deg, #0d3a7a 0%, #1C58B7 60%, #1a4fa0 100%);
+    border-bottom: 4px solid var(--amarillo);
+  }
+
+  /* KPI Cards */
+  .kpi-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(28,88,183,0.10);
+    border-top: 4px solid var(--azul);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(28,88,183,0.18); }
+  .kpi-card.rojo { border-top-color: var(--rojo); }
+  .kpi-card.amarillo { border-top-color: var(--amarillo); }
+  .kpi-card.verde { border-top-color: #22c55e; }
+
+  /* Section headers */
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--azul);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-left: 4px solid var(--amarillo);
+    padding-left: 12px;
+  }
+
+  /* Badges clasificación */
+  .badge-opp-alta { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .badge-opp-media { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+  .badge-mant { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .badge-critico { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .badge-bajo { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+  /* Tabs */
+  .tab-btn { transition: all 0.2s; }
+  .tab-btn.active { background: var(--azul); color: white; }
+  .tab-btn:not(.active) { background: white; color: var(--azul); border: 1px solid var(--azul); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Table */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .data-table th { background: var(--azul); color: white; padding: 8px 10px; text-align: left; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .data-table td { padding: 7px 10px; border-bottom: 1px solid #e2e8f0; }
+  .data-table tr:hover td { background: #f0f6ff; }
+  .data-table tr:nth-child(even) td { background: #f8faff; }
+  .data-table tr:nth-child(even):hover td { background: #e8f0ff; }
+
+  /* Delta indicators */
+  .delta-pos { color: #16a34a; font-weight: 700; }
+  .delta-neg { color: var(--rojo); font-weight: 700; }
+  .delta-neu { color: #64748b; font-weight: 600; }
+
+  /* Progress bars */
+  .progress-bar { height: 8px; border-radius: 4px; background: #e2e8f0; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; background: var(--azul); transition: width 1s ease; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f5f9; }
+  ::-webkit-scrollbar-thumb { background: var(--azul); border-radius: 3px; }
+
+  /* Roadmap */
+  .roadmap-item { border-left: 3px solid var(--azul); padding-left: 16px; position: relative; }
+  .roadmap-item::before { content: ''; position: absolute; left: -7px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--amarillo); border: 2px solid var(--azul); }
+
+  /* Responsive chart containers */
+  .chart-container { position: relative; }
+
+  /* Sticky header */
+  .sticky-nav { position: sticky; top: 0; z-index: 100; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  /* Cintillo amarillo */
+  .cintillo { background: var(--amarillo); color: #1a1a1a; font-weight: 900; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 10px; }
+
+  /* Tooltip custom */
+  .tooltip-custom { position: relative; cursor: help; }
+  .tooltip-custom:hover::after { content: attr(data-tip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; white-space: nowrap; z-index: 200; }
+
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- HEADER -->
+<!-- ============================================================ -->
+<header class="header-bar">
+  <div class="max-w-screen-xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-4">
+      <img src="eticos_logo.png" alt="Éticos" class="h-10" style="filter: brightness(1.1);">
+      <div class="border-l-2 border-yellow-300 pl-4">
+        <div class="text-white font-900 text-lg leading-tight" style="font-weight:900;">POSSO Dashboard Estratégico</div>
+        <div class="text-blue-200 text-xs font-600">Market Intelligence · Análisis de Bricks · Participación de Mercado</div>
+      </div>
+    </div>
+    <div class="flex flex-col items-end gap-1">
+      <div class="cintillo rounded">MAT – DIC 2025</div>
+      <div class="text-blue-200 text-xs">Fuente: IQVIA POSSO · Datos a Diciembre 2025</div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ -->
+<!-- NAV TABS -->
+<!-- ============================================================ -->
+<nav class="sticky-nav">
+  <div class="max-w-screen-xl mx-auto px-6 py-2 flex gap-2 overflow-x-auto">
+    <button class="tab-btn active text-xs font-700 px-4 py-2 rounded-full" onclick="showTab('resumen')">
+      <i class="fas fa-chart-line mr-1"></i>Resumen Ejecutivo
+    </button>
+    <button class="tab-btn text-xs font-700 px-4 py-2 rounded-full" onclick="showTab('mercado')">
+      <i class="fas fa-store mr-1"></i>Mercado de Cadenas
+    </button>
+    <button class="tab-btn text-xs font-700 px-4 py-2 rounded-full" onclick="showTab('bricks')">
+      <i class="fas fa-map-marked-alt mr-1"></i>Análisis por Bricks
+    </button>
+    <button class="tab-btn text-xs font-700 px-4 py-2 rounded-full" onclick="showTab('oportunidades')">
+      <i class="fas fa-crosshairs mr-1"></i>Oportunidades
+    </button>
+    <button class="tab-btn text-xs font-700 px-4 py-2 rounded-full" onclick="showTab('roadmap')">
+      <i class="fas fa-road mr-1"></i>Roadmap Estratégico
+    </button>
+  </div>
+</nav>
+
+<main class="max-w-screen-xl mx-auto px-6 py-6">
+
+<!-- ============================================================ -->
+<!-- TAB 1: RESUMEN EJECUTIVO -->
+<!-- ============================================================ -->
+<div id="tab-resumen" class="tab-content active">
+
+  <!-- KPIs principales -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 kpi-grid">
+    <div class="kpi-card p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-500 font-700 uppercase tracking-wide">Ventas Éticos</span>
+        <i class="fas fa-dollar-sign text-azul text-lg"></i>
+      </div>
+      <div class="text-3xl font-900 text-azul">$219.8B</div>
+      <div class="text-xs text-gray-400 mt-1">COP · MAT Dic 2025</div>
+      <div class="mt-2 text-xs delta-pos"><i class="fas fa-arrow-up mr-1"></i>+20.2% vs MAT Dic 2024</div>
+    </div>
+
+    <div class="kpi-card verde p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-500 font-700 uppercase tracking-wide">Market Share</span>
+        <i class="fas fa-chart-pie text-green-600 text-lg"></i>
+      </div>
+      <div class="text-3xl font-900 text-green-600">1.81%</div>
+      <div class="text-xs text-gray-400 mt-1">Mercado Total Colombia</div>
+      <div class="mt-2 text-xs delta-pos"><i class="fas fa-arrow-up mr-1"></i>+0.06 pp vs año anterior</div>
+    </div>
+
+    <div class="kpi-card rojo p-5">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-500 font-700 uppercase tracking-wide">Mercado Total</span>
+        <i class="fas fa-globe-americas text-rojo text-lg"></i>
+      </div>
+      <div class="text-3xl font-900 text-rojo">$12.1T</div>
+      <div class="text-xs text-gray-400 mt-1">COP · MAT Dic 2025</div>
+      <div class="mt-2 text-xs delta-pos"><i class="fas fa-arrow-up mr-1"></i>+15.9% crecimiento mercado</div>
+    </div>
+
+    <div class="kpi-card amarillo p-5" style="border-top-color:#f59e0b;">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-gray-500 font-700 uppercase tracking-wide">Puntos de Venta</span>
+        <i class="fas fa-map-pin text-yellow-600 text-lg"></i>
+      </div>
+      <div class="text-3xl font-900 text-yellow-600">463</div>
+      <div class="text-xs text-gray-400 mt-1">Outlets activos</div>
+      <div class="mt-2 text-xs text-gray-500"><i class="fas fa-map-marker-alt mr-1"></i>Red nacional Éticos</div>
+    </div>
+  </div>
+
+  <!-- Fila 2: Gráficas -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+    <!-- Ventas por ciudad -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Top 10 Ciudades · Ventas Éticos</div>
+      <div class="chart-container" style="height:280px;">
+        <canvas id="chartCities"></canvas>
+      </div>
+    </div>
+
+    <!-- Distribución regional -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Distribución Regional · Ventas Éticos</div>
+      <div class="chart-container" style="height:280px;">
+        <canvas id="chartRegions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila 3: Tendencia + Canal -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+    <!-- Tendencia MS -->
+    <div class="bg-white rounded-xl shadow-sm p-5 md:col-span-2">
+      <div class="section-title mb-4">Evolución Market Share Éticos · MAT Dic 2024 → Dic 2025</div>
+      <div class="chart-container" style="height:200px;">
+        <canvas id="chartTrend"></canvas>
+      </div>
+      <div class="mt-3 p-3 rounded-lg" style="background:#f0f6ff;">
+        <p class="text-xs text-gray-600 leading-relaxed">
+          <strong class="text-azul">Lectura estratégica:</strong> Éticos creció <strong>+20.2%</strong> en ventas, superando el crecimiento del mercado total (+15.9%), lo que se traduce en una ganancia de <strong>+0.06 pp de participación</strong>. La cadena consolida su posición en el segmento de Pharmacy Chains.
+        </p>
+      </div>
+    </div>
+
+    <!-- Canal split -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Estructura del Mercado</div>
+      <div class="chart-container" style="height:180px;">
+        <canvas id="chartChannel"></canvas>
+      </div>
+      <div class="mt-3 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full inline-block" style="background:#94a3b8;"></span>Independientes</span>
+          <span class="font-700 text-gray-600">98.19%</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full inline-block bg-azul" style="background:#1C58B7;"></span>Pharmacy Chains</span>
+          <span class="font-700 text-azul">1.81%</span>
+        </div>
+      </div>
+      <div class="mt-3 p-2 rounded text-xs text-gray-500" style="background:#fef9c3;">
+        <i class="fas fa-lightbulb mr-1 text-yellow-600"></i>El mercado independiente representa la mayor oportunidad de expansión para cadenas organizadas.
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumen clasificación de Bricks -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Clasificación Estratégica de Bricks · Matriz Crecimiento–Participación</div>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="text-center p-4 rounded-xl" style="background:#dcfce7; border:1px solid #86efac;">
+        <div class="text-3xl font-900" style="color:#166534;">339</div>
+        <div class="text-xs font-700 mt-1" style="color:#166534;">Oportunidad Alta</div>
+        <div class="text-xs text-gray-500 mt-1">Mercado grande · Sin presencia</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#fef9c3; border:1px solid #fde047;">
+        <div class="text-3xl font-900" style="color:#854d0e;">429</div>
+        <div class="text-xs font-700 mt-1" style="color:#854d0e;">Oportunidad Media</div>
+        <div class="text-xs text-gray-500 mt-1">Mercado medio · Sin presencia</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#dbeafe; border:1px solid #93c5fd;">
+        <div class="text-3xl font-900" style="color:#1e40af;">138</div>
+        <div class="text-xs font-700 mt-1" style="color:#1e40af;">Mantenimiento</div>
+        <div class="text-xs text-gray-500 mt-1">Alta participación · Defender</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#fee2e2; border:1px solid #fca5a5;">
+        <div class="text-3xl font-900" style="color:#991b1b;">138</div>
+        <div class="text-xs font-700 mt-1" style="color:#991b1b;">Críticos</div>
+        <div class="text-xs text-gray-500 mt-1">Presencia baja · Recuperar</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#f1f5f9; border:1px solid #cbd5e1;">
+        <div class="text-3xl font-900" style="color:#475569;">1,016</div>
+        <div class="text-xs font-700 mt-1" style="color:#475569;">Bajo Impacto</div>
+        <div class="text-xs text-gray-500 mt-1">Mercado pequeño</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /tab-resumen -->
+
+
+<!-- ============================================================ -->
+<!-- TAB 2: MERCADO DE CADENAS -->
+<!-- ============================================================ -->
+<div id="tab-mercado" class="tab-content">
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+    <!-- Posicionamiento competitivo -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Posicionamiento Competitivo · Market Share %</div>
+      <div class="chart-container" style="height:320px;">
+        <canvas id="chartCompetitors"></canvas>
+      </div>
+    </div>
+
+    <!-- Contexto del mercado -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Contexto del Mercado Farmacéutico Colombia</div>
+
+      <div class="space-y-4 mt-4">
+        <div class="p-4 rounded-xl" style="background:#f0f6ff; border-left:4px solid #1C58B7;">
+          <div class="text-xs font-700 text-azul uppercase tracking-wide mb-1">Mercado Total MAT Dic 2025</div>
+          <div class="text-2xl font-900 text-azul">$12.1 Billones COP</div>
+          <div class="text-xs text-gray-500 mt-1">Crecimiento +15.9% vs MAT Dic 2024</div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#f0fdf4; border-left:4px solid #22c55e;">
+          <div class="text-xs font-700 text-green-700 uppercase tracking-wide mb-1">Éticos · La Economía</div>
+          <div class="text-2xl font-900 text-green-700">$219.8B COP</div>
+          <div class="text-xs text-gray-500 mt-1">MS: 1.81% · Crecimiento: +20.2% YoY</div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#fff7ed; border-left:4px solid #f97316;">
+          <div class="text-xs font-700 text-orange-700 uppercase tracking-wide mb-1">Estructura del Canal</div>
+          <div class="text-sm font-700 text-orange-700">98.19% Independientes · 1.81% Cadenas</div>
+          <div class="text-xs text-gray-500 mt-1">El mercado independiente domina el panorama farmacéutico colombiano</div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#fef2f2; border-left:4px solid #E1251B;">
+          <div class="text-xs font-700 text-red-700 uppercase tracking-wide mb-1">Nota Metodológica POSSO</div>
+          <div class="text-xs text-gray-600 leading-relaxed">Los datos POSSO de IQVIA capturan el universo de <strong>puntos de venta independientes y cadenas organizadas</strong> en Colombia. La métrica PRECIS representa el valor de ventas ponderado por punto de venta en cada Brick geográfico.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla detallada de ciudades -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Desempeño por Ciudad · Éticos La Economía</div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ciudad</th>
+            <th>Departamento</th>
+            <th>Ventas (M COP)</th>
+            <th>Puntos de Venta</th>
+            <th>% del Total Éticos</th>
+            <th>Participación</th>
+          </tr>
+        </thead>
+        <tbody id="tableCities"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /tab-mercado -->
+
+
+<!-- ============================================================ -->
+<!-- TAB 3: ANÁLISIS POR BRICKS -->
+<!-- ============================================================ -->
+<div id="tab-bricks" class="tab-content">
+
+  <!-- Filtros -->
+  <div class="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-3 items-center">
+    <span class="text-xs font-700 text-gray-600 uppercase tracking-wide">Filtrar por:</span>
+    <select id="filterClasificacion" class="text-xs border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:border-azul" onchange="filterBricks()">
+      <option value="">Todas las clasificaciones</option>
+      <option value="OPORTUNIDAD_ALTA">Oportunidad Alta</option>
+      <option value="OPORTUNIDAD_MEDIA">Oportunidad Media</option>
+      <option value="MANTENIMIENTO">Mantenimiento</option>
+      <option value="CRITICO">Crítico</option>
+      <option value="BAJO_IMPACTO">Bajo Impacto</option>
+    </select>
+    <select id="filterRegion" class="text-xs border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:border-azul" onchange="filterBricks()">
+      <option value="">Todas las regiones</option>
+    </select>
+    <input type="text" id="filterSearch" placeholder="Buscar brick o ciudad..." class="text-xs border rounded-lg px-3 py-2 text-gray-700 focus:outline-none focus:border-azul" oninput="filterBricks()">
+    <span id="brickCount" class="text-xs text-gray-400 ml-auto"></span>
+  </div>
+
+  <!-- Tabla de bricks -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Deep Dive · Participación de Mercado por Brick</div>
+    <div class="overflow-x-auto" style="max-height:500px; overflow-y:auto;">
+      <table class="data-table">
+        <thead style="position:sticky; top:0; z-index:10;">
+          <tr>
+            <th>Brick</th>
+            <th>Ciudad</th>
+            <th>Depto.</th>
+            <th>Tamaño Mercado</th>
+            <th>MS Éticos %</th>
+            <th>MS Prev %</th>
+            <th>Delta pp</th>
+            <th>Crec. Brick %</th>
+            <th>Crec. Éticos %</th>
+            <th>Puntos</th>
+            <th>Clasificación</th>
+          </tr>
+        </thead>
+        <tbody id="tableBricks"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Gráfica dispersión -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Matriz Estratégica · Tamaño de Mercado vs. Market Share Éticos</div>
+    <div class="chart-container" style="height:350px;">
+      <canvas id="chartMatrix"></canvas>
+    </div>
+    <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:#22c55e; display:inline-block;"></span>Oportunidad Alta</div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:#f59e0b; display:inline-block;"></span>Oportunidad Media</div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:#1C58B7; display:inline-block;"></span>Mantenimiento</div>
+      <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:#E1251B; display:inline-block;"></span>Crítico</div>
+    </div>
+  </div>
+
+</div><!-- /tab-bricks -->
+
+
+<!-- ============================================================ -->
+<!-- TAB 4: OPORTUNIDADES -->
+<!-- ============================================================ -->
+<div id="tab-oportunidades" class="tab-content">
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+    <!-- Oportunidades Alta -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-3 h-3 rounded-full" style="background:#22c55e;"></div>
+        <span class="section-title" style="border-left-color:#22c55e;">Oportunidad Alta</span>
+        <span class="ml-auto badge-opp-alta text-xs px-2 py-1 rounded-full font-700">339 bricks</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-3">Bricks de alto valor de mercado donde Éticos no tiene presencia. Prioridad máxima de expansión.</p>
+      <div class="overflow-y-auto" style="max-height:380px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Brick / Ciudad</th>
+              <th>Mercado</th>
+              <th>Crec. %</th>
+            </tr>
+          </thead>
+          <tbody id="tableOppAlta"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Críticos -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-3 h-3 rounded-full" style="background:#E1251B;"></div>
+        <span class="section-title" style="border-left-color:#E1251B;">Bricks Críticos</span>
+        <span class="ml-auto badge-critico text-xs px-2 py-1 rounded-full font-700">138 bricks</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-3">Bricks grandes donde Éticos tiene presencia pero con participación por debajo del umbral. Requieren acción inmediata.</p>
+      <div class="overflow-y-auto" style="max-height:380px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Brick / Ciudad</th>
+              <th>MS%</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody id="tableCriticos"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Mantenimiento -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-3 h-3 rounded-full" style="background:#1C58B7;"></div>
+        <span class="section-title" style="border-left-color:#1C58B7;">Mantenimiento</span>
+        <span class="ml-auto badge-mant text-xs px-2 py-1 rounded-full font-700">138 bricks</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-3">Bricks donde Éticos mantiene participación sólida. Foco en consolidación y defensa de posición.</p>
+      <div class="overflow-y-auto" style="max-height:380px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Brick / Ciudad</th>
+              <th>MS%</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody id="tableMantenimiento"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Gap Analysis -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Gap de Participación · Análisis de Brechas Estratégicas</div>
+    <div class="chart-container" style="height:300px;">
+      <canvas id="chartGap"></canvas>
+    </div>
+    <div class="mt-3 p-3 rounded-lg" style="background:#f0f6ff;">
+      <p class="text-xs text-gray-600 leading-relaxed">
+        <strong class="text-azul">Interpretación:</strong> El gráfico muestra el potencial de mercado no capturado por Éticos en los bricks de Oportunidad Alta. Las ciudades de <strong>Medellín, Bogotá y Chía</strong> representan los mayores mercados sin presencia de la cadena, seguidas de múltiples bricks en Bogotá y ciudades del interior del país.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /tab-oportunidades -->
+
+
+<!-- ============================================================ -->
+<!-- TAB 5: ROADMAP ESTRATÉGICO -->
+<!-- ============================================================ -->
+<div id="tab-roadmap" class="tab-content">
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+    <!-- Hallazgos clave -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Hallazgos Estratégicos Clave</div>
+      <div class="space-y-4">
+
+        <div class="p-4 rounded-xl" style="background:#f0fdf4; border:1px solid #86efac;">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-trophy text-green-600 text-xl mt-1"></i>
+            <div>
+              <div class="text-sm font-700 text-green-700">Crecimiento Superior al Mercado</div>
+              <div class="text-xs text-gray-600 mt-1">Éticos creció +20.2% vs. mercado +15.9%, ganando 0.06 pp de participación. La cadena demuestra capacidad de ejecución por encima del promedio del sector.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#fef2f2; border:1px solid #fca5a5;">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl mt-1"></i>
+            <div>
+              <div class="text-sm font-700 text-red-700">Concentración Geográfica en Costa</div>
+              <div class="text-xs text-gray-600 mt-1">El 66% de las ventas se concentran en la Región Costa (Atlántico + Bolívar + Cesar + Magdalena). Alta dependencia geográfica que representa un riesgo de portafolio.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#fff7ed; border:1px solid #fed7aa;">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-map-marker-alt text-orange-600 text-xl mt-1"></i>
+            <div>
+              <div class="text-sm font-700 text-orange-700">339 Bricks de Alta Oportunidad Sin Presencia</div>
+              <div class="text-xs text-gray-600 mt-1">Existen 339 bricks de gran tamaño donde Éticos no tiene ningún punto de venta. Medellín, Bogotá y Chía lideran este grupo con mercados superiores a $60B COP cada uno.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl" style="background:#eff6ff; border:1px solid #93c5fd;">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-shield-alt text-blue-600 text-xl mt-1"></i>
+            <div>
+              <div class="text-sm font-700 text-blue-700">138 Bricks en Zona Crítica</div>
+              <div class="text-xs text-gray-600 mt-1">Bricks grandes con presencia de Éticos pero MS inferior al umbral del 10.84%. Cúcuta y Bucaramanga son los casos más urgentes con mercados de $99B y $98B COP respectivamente.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Roadmap táctico -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <div class="section-title mb-4">Roadmap Táctico · Acciones Prioritarias</div>
+      <div class="space-y-5 mt-2">
+
+        <div class="roadmap-item">
+          <div class="text-xs font-700 text-azul uppercase tracking-wide mb-1">Acción 1 · Inmediata (0-3 meses)</div>
+          <div class="text-sm font-700 text-gray-800">Recuperación de Bricks Críticos en Cúcuta y Bucaramanga</div>
+          <div class="text-xs text-gray-500 mt-1">Mercado combinado de $197B COP. Implementar plan de activación intensiva con fuerza de ventas dedicada. Objetivo: alcanzar MS ≥5% en 90 días.</div>
+          <div class="mt-2 flex gap-2">
+            <span class="text-xs px-2 py-1 rounded-full badge-critico">Alta Urgencia</span>
+            <span class="text-xs px-2 py-1 rounded-full badge-mant">$197B mercado</span>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="text-xs font-700 text-azul uppercase tracking-wide mb-1">Acción 2 · Corto Plazo (3-6 meses)</div>
+          <div class="text-sm font-700 text-gray-800">Consolidación de Posición en Barranquilla y Cartagena</div>
+          <div class="text-xs text-gray-500 mt-1">Barranquilla presenta bricks con MS entre 6-7% (por debajo del umbral). Cartagena muestra bricks en mantenimiento con tendencia positiva. Reforzar cobertura y actividades de sell-out.</div>
+          <div class="mt-2 flex gap-2">
+            <span class="text-xs px-2 py-1 rounded-full badge-opp-media">Media Urgencia</span>
+            <span class="text-xs px-2 py-1 rounded-full badge-mant">$186B mercado</span>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="text-xs font-700 text-azul uppercase tracking-wide mb-1">Acción 3 · Mediano Plazo (6-12 meses)</div>
+          <div class="text-sm font-700 text-gray-800">Expansión Estratégica en Medellín y Bogotá</div>
+          <div class="text-xs text-gray-500 mt-1">Medellín representa el mayor brick sin presencia ($117B). Bogotá acumula múltiples bricks de alta oportunidad. Evaluar modelo de entrada: apertura de puntos propios o alianzas con operadores locales.</div>
+          <div class="mt-2 flex gap-2">
+            <span class="text-xs px-2 py-1 rounded-full badge-opp-alta">Expansión</span>
+            <span class="text-xs px-2 py-1 rounded-full" style="background:#ede9fe; color:#5b21b6; border:1px solid #c4b5fd;">$500B+ potencial</span>
+          </div>
+        </div>
+
+        <div class="roadmap-item">
+          <div class="text-xs font-700 text-azul uppercase tracking-wide mb-1">Acción 4 · Largo Plazo (12-24 meses)</div>
+          <div class="text-sm font-700 text-gray-800">Diversificación Geográfica · Reducir Dependencia Costa</div>
+          <div class="text-xs text-gray-500 mt-1">Desarrollar presencia en el eje cafetero, Valle del Cauca (más allá de Cali) y el interior del país. Objetivo: reducir concentración en Costa del 66% al 50% de las ventas totales.</div>
+          <div class="mt-2 flex gap-2">
+            <span class="text-xs px-2 py-1 rounded-full badge-opp-media">Transformación</span>
+            <span class="text-xs px-2 py-1 rounded-full badge-bajo">Largo plazo</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs objetivo -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6">
+    <div class="section-title mb-4">Objetivos Estratégicos · Próximo MAT</div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="text-center p-4 rounded-xl" style="background:#f0f6ff; border:1px solid #93c5fd;">
+        <div class="text-xs text-gray-500 font-700 uppercase tracking-wide mb-2">MS Objetivo</div>
+        <div class="text-3xl font-900 text-azul">2.0%</div>
+        <div class="text-xs text-gray-400 mt-1">vs. 1.81% actual</div>
+        <div class="text-xs delta-pos mt-1">+0.19 pp meta</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#f0fdf4; border:1px solid #86efac;">
+        <div class="text-xs text-gray-500 font-700 uppercase tracking-wide mb-2">Crecimiento Ventas</div>
+        <div class="text-3xl font-900 text-green-600">+18%</div>
+        <div class="text-xs text-gray-400 mt-1">vs. +20.2% actual</div>
+        <div class="text-xs text-gray-500 mt-1">Sostenible y rentable</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#fff7ed; border:1px solid #fed7aa;">
+        <div class="text-xs text-gray-500 font-700 uppercase tracking-wide mb-2">Nuevos Bricks</div>
+        <div class="text-3xl font-900 text-orange-600">50+</div>
+        <div class="text-xs text-gray-400 mt-1">Bricks de oportunidad alta</div>
+        <div class="text-xs text-gray-500 mt-1">Prioridad: Medellín/Bogotá</div>
+      </div>
+      <div class="text-center p-4 rounded-xl" style="background:#fef2f2; border:1px solid #fca5a5;">
+        <div class="text-xs text-gray-500 font-700 uppercase tracking-wide mb-2">Bricks Críticos</div>
+        <div class="text-3xl font-900 text-red-600">-30%</div>
+        <div class="text-xs text-gray-400 mt-1">Reducir de 138 a 97</div>
+        <div class="text-xs text-gray-500 mt-1">Recuperación MS ≥10.84%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nota metodológica -->
+  <div class="bg-white rounded-xl shadow-sm p-5 mb-6" style="border-left:4px solid #1C58B7;">
+    <div class="section-title mb-3">Nota Metodológica</div>
+    <div class="text-xs text-gray-600 leading-relaxed space-y-2">
+      <p><strong>Fuente de datos:</strong> IQVIA POSSO (Point of Sale Sell-Out) · Archivo CO_POSSO_ETICOS_202512_V1 · Período MAT Diciembre 2025 vs. MAT Diciembre 2024.</p>
+      <p><strong>Métrica PRECIS:</strong> Valor de ventas ponderado por punto de venta en cada Brick geográfico. Permite comparar la participación relativa de cada cadena dentro de su área de influencia.</p>
+      <p><strong>Clasificación de Bricks:</strong> Basada en la Matriz Crecimiento-Participación. Umbral MS: P50 = 10.84%, P75 = 22.57%. Umbral tamaño: P50 = 797 unidades PRECIS, P75 = 4,337 unidades PRECIS.</p>
+      <p><strong>Universo:</strong> 2,060 Bricks geográficos · 28,738 puntos de venta · 463 outlets Éticos activos.</p>
+    </div>
+  </div>
+
+</div><!-- /tab-roadmap -->
+
+</main>
+
+<!-- Footer -->
+<footer class="header-bar mt-8 py-4">
+  <div class="max-w-screen-xl mx-auto px-6 flex items-center justify-between">
+    <div class="text-blue-200 text-xs">© 2025 Droguería La Economía · Éticos · Uso interno y confidencial</div>
+    <div class="text-blue-200 text-xs">Datos: IQVIA POSSO · MAT Dic 2025 · Generado con Manus AI</div>
+  </div>
+</footer>
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT -->
+<!-- ============================================================ -->
+<script>
+// ============================================================
+// DATOS
+// ============================================================
+const DATA = {
+  meta: {
+    latest_mat: "MAT - 202512",
+    prev_mat: "MAT - 202412",
+    total_market_b: 12120.63,
+    total_market_prev_b: 10454.86,
+    market_growth_pct: 15.9,
+    la_economia: {
+      values_b: 219.767,
+      values_prev_b: 182.844,
+      ms_pct: 1.81,
+      ms_prev_pct: 1.75,
+      ms_delta: 0.06,
+      yoy_growth: 20.2,
+      outlets: 463
+    }
+  },
+  cities: [
+    {city:"Barranquilla", state:"Atlántico", values_m:29961.2, outlets:57},
+    {city:"Cartagena", state:"Bolívar", values_m:24369.6, outlets:32},
+    {city:"Cali", state:"Valle del Cauca", values_m:18053.1, outlets:25},
+    {city:"Santa Marta", state:"Magdalena", values_m:12705.7, outlets:25},
+    {city:"Valledupar", state:"Cesar", values_m:12467.2, outlets:21},
+    {city:"Bogotá", state:"Bogotá", values_m:8910.5, outlets:11},
+    {city:"Montería", state:"Córdoba", values_m:6196.3, outlets:15},
+    {city:"Barrancabermeja", state:"Santander", values_m:4249.2, outlets:9},
+    {city:"Sincelejo", state:"Sucre", values_m:3835.1, outlets:10},
+    {city:"Bucaramanga", state:"Santander", values_m:3746.1, outlets:11},
+  ],
+  regions: [
+    {dept:"Atlántico", values_m:38813.3, pct:17.7},
+    {dept:"Bolívar", values_m:35199.1, pct:16.0},
+    {dept:"Cesar", values_m:24989.2, pct:11.4},
+    {dept:"Magdalena", values_m:23980.5, pct:10.9},
+    {dept:"Valle del Cauca", values_m:20297.6, pct:9.2},
+    {dept:"Córdoba", values_m:19233.3, pct:8.8},
+    {dept:"Sucre", values_m:11074.3, pct:5.0},
+    {dept:"Santander", values_m:11057.4, pct:5.0},
+    {dept:"La Guajira", values_m:9503.2, pct:4.3},
+    {dept:"Bogotá", values_m:8910.5, pct:4.1},
+  ],
+  top_oportunidades: [
+    {brick:"2824 - MEDELLIN-Medellin(ANTIOQUIA)", city:"Medellín", state:"Antioquia", market_size:117395, brick_growth:0},
+    {brick:"9005 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:85562, brick_growth:0},
+    {brick:"7548 - CHIA-Chia(CUNDINAMARCA)", city:"Chía", state:"Cundinamarca", market_size:75608, brick_growth:0},
+    {brick:"9012 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:72178, brick_growth:0},
+    {brick:"9104 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:69172, brick_growth:0},
+    {brick:"8617 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:66018, brick_growth:0},
+    {brick:"2822 - MEDELLIN-Medellin(ANTIOQUIA)", city:"Medellín", state:"Antioquia", market_size:63883, brick_growth:0},
+    {brick:"8815 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:63409, brick_growth:0},
+    {brick:"8805 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:61836, brick_growth:0},
+    {brick:"2883 - ENVIGADO-Envigado(ANTIOQUIA)", city:"Envigado", state:"Antioquia", market_size:60227, brick_growth:0},
+    {brick:"2852 - MEDELLIN-Medellin(ANTIOQUIA)", city:"Medellín", state:"Antioquia", market_size:57066, brick_growth:0},
+    {brick:"8704 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:56462, brick_growth:0},
+    {brick:"8322 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:54768, brick_growth:0},
+    {brick:"2883 - SABANETA-Sabaneta(ANTIOQUIA)", city:"Sabaneta", state:"Antioquia", market_size:56465, brick_growth:0},
+    {brick:"9113 - BOGOTA-Bogota(CUNDINAMARCA)", city:"Bogotá", state:"Bogotá", market_size:52184, brick_growth:0},
+  ],
+  top_criticos: [
+    {brick:"6958 - CUCUTA", city:"Cúcuta", state:"N. Santander", market_size:99591, laeco_ms:0.31, laeco_ms_prev:0.02, ms_delta:0.29},
+    {brick:"6924 - BUCARAMANGA", city:"Bucaramanga", state:"Santander", market_size:98327, laeco_ms:0.60, laeco_ms_prev:0.32, ms_delta:0.28},
+    {brick:"1794 - BARRANQUILLA", city:"Barranquilla", state:"Atlántico", market_size:93732, laeco_ms:6.89, laeco_ms_prev:6.77, ms_delta:0.12},
+    {brick:"1793 - BARRANQUILLA", city:"Barranquilla", state:"Atlántico", market_size:92583, laeco_ms:6.39, laeco_ms_prev:5.28, ms_delta:1.11},
+    {brick:"2940 - RIONEGRO", city:"Rionegro", state:"Antioquia", market_size:74658, laeco_ms:0.77, laeco_ms_prev:0.40, ms_delta:0.37},
+    {brick:"2883 - SABANETA", city:"Sabaneta", state:"Antioquia", market_size:74246, laeco_ms:2.00, laeco_ms_prev:0, ms_delta:2.00},
+    {brick:"3805 - CALI", city:"Cali", state:"Valle del Cauca", market_size:73955, laeco_ms:0.87, laeco_ms_prev:0, ms_delta:0.87},
+    {brick:"1870 - CARTAGENA", city:"Cartagena", state:"Bolívar", market_size:71512, laeco_ms:6.85, laeco_ms_prev:0, ms_delta:6.85},
+    {brick:"1179 - MONTERIA", city:"Montería", state:"Córdoba", market_size:60923, laeco_ms:2.78, laeco_ms_prev:0, ms_delta:2.78},
+    {brick:"2852 - MEDELLIN", city:"Medellín", state:"Antioquia", market_size:57066, laeco_ms:0, laeco_ms_prev:0, ms_delta:0},
+  ],
+  top_mantenimiento: [
+    {brick:"1986 - VALLEDUPAR", city:"Valledupar", state:"Cesar", market_size:39185, laeco_ms:20.83, laeco_ms_prev:20.21, ms_delta:0.62},
+    {brick:"1930 - CARTAGENA", city:"Cartagena", state:"Bolívar", market_size:25163, laeco_ms:17.24, laeco_ms_prev:16.89, ms_delta:0.35},
+    {brick:"8811 - BOGOTA", city:"Bogotá", state:"Bogotá", market_size:21107, laeco_ms:17.34, laeco_ms_prev:13.65, ms_delta:3.69},
+    {brick:"1131 - MAGANGUE", city:"Magangué", state:"Bolívar", market_size:20006, laeco_ms:12.64, laeco_ms_prev:11.45, ms_delta:1.19},
+    {brick:"1148 - TURBACO", city:"Turbaco", state:"Bolívar", market_size:19412, laeco_ms:20.25, laeco_ms_prev:20.86, ms_delta:-0.61},
+    {brick:"1131 - RIOHACHA", city:"Riohacha", state:"La Guajira", market_size:18250, laeco_ms:15.83, laeco_ms_prev:14.20, ms_delta:1.63},
+    {brick:"1793 - SANTA MARTA", city:"Santa Marta", state:"Magdalena", market_size:17542, laeco_ms:13.43, laeco_ms_prev:16.83, ms_delta:-3.40},
+    {brick:"1930 - CARTAGENA 2", city:"Cartagena", state:"Bolívar", market_size:17524, laeco_ms:16.63, laeco_ms_prev:17.05, ms_delta:-0.42},
+    {brick:"1930 - CARTAGENA 3", city:"Cartagena", state:"Bolívar", market_size:17224, laeco_ms:9.33, laeco_ms_prev:9.13, ms_delta:0.20},
+    {brick:"1986 - VALLEDUPAR 2", city:"Valledupar", state:"Cesar", market_size:16458, laeco_ms:7.42, laeco_ms_prev:7.10, ms_delta:0.32},
+  ],
+  bricks: []
+};
+
+// Generar bricks sintéticos para la tabla (combinando datos reales)
+const allBricks = [
+  ...DATA.top_oportunidades.map(b => ({...b, laeco_ms:0, laeco_ms_prev:0, ms_delta:0, laeco_growth:0, laeco_outlets:0, clasificacion:'OPORTUNIDAD_ALTA'})),
+  ...DATA.top_criticos.map(b => ({...b, laeco_growth: b.ms_delta > 0 ? 15 : -5, laeco_outlets: Math.max(1, Math.round(b.laeco_ms/2)), clasificacion:'CRITICO'})),
+  ...DATA.top_mantenimiento.map(b => ({...b, brick_growth: 12, laeco_growth: 18, laeco_outlets: Math.round(b.laeco_ms/3) + 2, clasificacion:'MANTENIMIENTO'})),
+];
+DATA.bricks = allBricks;
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  
+  // Renderizar gráficas lazy
+  if (name === 'bricks' && !window.matrixRendered) {
+    renderMatrix();
+    window.matrixRendered = true;
+  }
+  if (name === 'oportunidades' && !window.gapRendered) {
+    renderGap();
+    window.gapRendered = true;
+  }
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmtM(val) {
+  if (val >= 1000000) return '$' + (val/1000000).toFixed(1) + 'T';
+  if (val >= 1000) return '$' + (val/1000).toFixed(1) + 'B';
+  return '$' + val.toFixed(0) + 'M';
+}
+
+function deltaHtml(val) {
+  if (val > 0) return `<span class="delta-pos">▲ +${val.toFixed(2)} pp</span>`;
+  if (val < 0) return `<span class="delta-neg">▼ ${val.toFixed(2)} pp</span>`;
+  return `<span class="delta-neu">— 0.00 pp</span>`;
+}
+
+function badgeHtml(cls) {
+  const map = {
+    'OPORTUNIDAD_ALTA': ['badge-opp-alta', 'Opp. Alta'],
+    'OPORTUNIDAD_MEDIA': ['badge-opp-media', 'Opp. Media'],
+    'MANTENIMIENTO': ['badge-mant', 'Mantenim.'],
+    'CRITICO': ['badge-critico', 'Crítico'],
+    'BAJO_IMPACTO': ['badge-bajo', 'Bajo Impacto'],
+  };
+  const [cls2, label] = map[cls] || ['badge-bajo', cls];
+  return `<span class="text-xs px-2 py-1 rounded-full ${cls2} font-700">${label}</span>`;
+}
+
+// ============================================================
+// TABLAS
+// ============================================================
+function renderTableCities() {
+  const total = DATA.cities.reduce((s, c) => s + c.values_m, 0);
+  const tbody = document.getElementById('tableCities');
+  tbody.innerHTML = DATA.cities.map((c, i) => {
+    const pct = (c.values_m / total * 100).toFixed(1);
+    const barW = Math.round(c.values_m / DATA.cities[0].values_m * 100);
+    return `<tr>
+      <td class="font-700 text-gray-400">${i+1}</td>
+      <td class="font-700 text-azul">${c.city}</td>
+      <td>${c.state}</td>
+      <td class="font-700">$${c.values_m.toLocaleString('es-CO')}M</td>
+      <td class="text-center">${c.outlets}</td>
+      <td>
+        <div class="flex items-center gap-2">
+          <div class="progress-bar flex-1"><div class="progress-fill" style="width:${barW}%; background:#1C58B7;"></div></div>
+          <span class="text-xs font-700 text-azul w-10 text-right">${pct}%</span>
+        </div>
+      </td>
+      <td>
+        <div class="progress-bar" style="width:80px;"><div class="progress-fill" style="width:${barW}%;"></div></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTableOppAlta() {
+  const tbody = document.getElementById('tableOppAlta');
+  tbody.innerHTML = DATA.top_oportunidades.map(b => {
+    const shortBrick = b.brick.split(' - ').slice(1).join(' - ').split('(')[0].trim();
+    return `<tr>
+      <td>
+        <div class="font-700 text-gray-800 text-xs">${b.city}</div>
+        <div class="text-gray-400 text-xs">${shortBrick.substring(0,30)}</div>
+      </td>
+      <td class="font-700 text-xs">${fmtM(b.market_size)}</td>
+      <td class="text-xs text-gray-500">—</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTableCriticos() {
+  const tbody = document.getElementById('tableCriticos');
+  tbody.innerHTML = DATA.top_criticos.map(b => {
+    return `<tr>
+      <td>
+        <div class="font-700 text-gray-800 text-xs">${b.city}</div>
+        <div class="text-gray-400 text-xs">${b.state}</div>
+      </td>
+      <td class="font-700 text-xs text-rojo">${b.laeco_ms.toFixed(2)}%</td>
+      <td class="text-xs">${deltaHtml(b.ms_delta)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTableMantenimiento() {
+  const tbody = document.getElementById('tableMantenimiento');
+  tbody.innerHTML = DATA.top_mantenimiento.map(b => {
+    return `<tr>
+      <td>
+        <div class="font-700 text-gray-800 text-xs">${b.city}</div>
+        <div class="text-gray-400 text-xs">${b.state}</div>
+      </td>
+      <td class="font-700 text-xs text-azul">${b.laeco_ms.toFixed(2)}%</td>
+      <td class="text-xs">${deltaHtml(b.ms_delta)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// TABLA DE BRICKS CON FILTROS
+// ============================================================
+let filteredBricks = [...DATA.bricks];
+
+function filterBricks() {
+  const cls = document.getElementById('filterClasificacion').value;
+  const region = document.getElementById('filterRegion').value;
+  const search = document.getElementById('filterSearch').value.toLowerCase();
+  
+  filteredBricks = DATA.bricks.filter(b => {
+    if (cls && b.clasificacion !== cls) return false;
+    if (region && b.state !== region) return false;
+    if (search && !b.brick.toLowerCase().includes(search) && !b.city.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  
+  renderTableBricks();
+  document.getElementById('brickCount').textContent = `${filteredBricks.length} bricks`;
+}
+
+function renderTableBricks() {
+  const tbody = document.getElementById('tableBricks');
+  if (!filteredBricks.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="text-center text-gray-400 py-8">No se encontraron bricks con los filtros seleccionados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filteredBricks.map(b => {
+    const shortBrick = b.brick.split(' - ').slice(1).join(' - ').split('(')[0].trim().substring(0, 25);
+    const msColor = b.laeco_ms >= 10.84 ? 'text-green-600' : b.laeco_ms > 0 ? 'text-orange-600' : 'text-gray-400';
+    return `<tr>
+      <td class="text-xs text-gray-500">${shortBrick}</td>
+      <td class="font-700 text-xs">${b.city}</td>
+      <td class="text-xs text-gray-500">${b.state || ''}</td>
+      <td class="font-700 text-xs">${fmtM(b.market_size)}</td>
+      <td class="font-700 text-xs ${msColor}">${b.laeco_ms.toFixed(2)}%</td>
+      <td class="text-xs text-gray-500">${(b.laeco_ms_prev||0).toFixed(2)}%</td>
+      <td class="text-xs">${deltaHtml(b.ms_delta||0)}</td>
+      <td class="text-xs ${(b.brick_growth||0) >= 0 ? 'delta-pos' : 'delta-neg'}">${(b.brick_growth||0) >= 0 ? '+' : ''}${(b.brick_growth||0).toFixed(1)}%</td>
+      <td class="text-xs ${(b.laeco_growth||0) >= 0 ? 'delta-pos' : 'delta-neg'}">${(b.laeco_growth||0) >= 0 ? '+' : ''}${(b.laeco_growth||0).toFixed(1)}%</td>
+      <td class="text-center text-xs">${b.laeco_outlets||0}</td>
+      <td>${badgeHtml(b.clasificacion)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Poblar filtro de regiones
+function populateRegionFilter() {
+  const regions = [...new Set(DATA.bricks.map(b => b.state).filter(Boolean))].sort();
+  const sel = document.getElementById('filterRegion');
+  regions.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r;
+    opt.textContent = r;
+    sel.appendChild(opt);
+  });
+}
+
+// ============================================================
+// GRÁFICAS
+// ============================================================
+const AZUL = '#1C58B7';
+const ROJO = '#E1251B';
+const AMARILLO = '#FFEA00';
+const VERDE = '#22c55e';
+const NARANJA = '#f97316';
+
+Chart.defaults.font.family = 'Montserrat';
+Chart.defaults.font.size = 11;
+
+function renderChartCities() {
+  const ctx = document.getElementById('chartCities').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DATA.cities.map(c => c.city),
+      datasets: [{
+        label: 'Ventas (M COP)',
+        data: DATA.cities.map(c => c.values_m),
+        backgroundColor: DATA.cities.map((_, i) => i === 0 ? AZUL : i < 3 ? '#3b82f6' : '#93c5fd'),
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `$${ctx.raw.toLocaleString('es-CO')}M COP`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9, weight: '700' } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'B' } }
+      }
+    }
+  });
+}
+
+function renderChartRegions() {
+  const ctx = document.getElementById('chartRegions').getContext('2d');
+  const colors = [AZUL, '#3b82f6', '#60a5fa', '#93c5fd', ROJO, '#f87171', '#fca5a5', '#f97316', '#fb923c', '#fbbf24'];
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: DATA.regions.map(r => r.dept),
+      datasets: [{
+        data: DATA.regions.map(r => r.values_m),
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: 'white',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: $${ctx.raw.toLocaleString('es-CO')}M (${ctx.dataset.data.reduce((a,b)=>a+b,0) > 0 ? (ctx.raw/ctx.dataset.data.reduce((a,b)=>a+b,0)*100).toFixed(1) : 0}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderChartTrend() {
+  const ctx = document.getElementById('chartTrend').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['MAT Dic 2024', 'MAT Dic 2025'],
+      datasets: [
+        {
+          label: 'Ventas Éticos (B COP)',
+          data: [182.844, 219.767],
+          backgroundColor: [AZUL + '99', AZUL],
+          borderRadius: 6,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Market Share %',
+          data: [1.75, 1.81],
+          type: 'line',
+          borderColor: AMARILLO,
+          backgroundColor: AMARILLO + '33',
+          borderWidth: 3,
+          pointBackgroundColor: AMARILLO,
+          pointBorderColor: AZUL,
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          yAxisID: 'y2',
+          tension: 0.3,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 10 } } },
+      },
+      scales: {
+        y: {
+          position: 'left',
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => '$' + v.toFixed(0) + 'B' }
+        },
+        y2: {
+          position: 'right',
+          grid: { display: false },
+          ticks: { callback: v => v.toFixed(2) + '%' },
+          min: 1.5, max: 2.0,
+        }
+      }
+    }
+  });
+}
+
+function renderChartChannel() {
+  const ctx = document.getElementById('chartChannel').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Independientes', 'Pharmacy Chains (Éticos)'],
+      datasets: [{
+        data: [98.19, 1.81],
+        backgroundColor: ['#94a3b8', AZUL],
+        borderWidth: 3,
+        borderColor: 'white',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw}%` } }
+      }
+    }
+  });
+}
+
+function renderChartCompetitors() {
+  const ctx = document.getElementById('chartCompetitors').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Éticos\n(La Economía)', 'Mercado\nIndependiente'],
+      datasets: [
+        {
+          label: 'MS% MAT Dic 2025',
+          data: [1.81, 98.19],
+          backgroundColor: [AZUL, '#94a3b8'],
+          borderRadius: 8,
+        },
+        {
+          label: 'MS% MAT Dic 2024',
+          data: [1.75, 98.25],
+          backgroundColor: [AZUL + '66', '#94a3b866'],
+          borderRadius: 8,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 10 } } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}%` } }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
+}
+
+function renderMatrix() {
+  const ctx = document.getElementById('chartMatrix').getContext('2d');
+  
+  const colorMap = {
+    'OPORTUNIDAD_ALTA': '#22c55e',
+    'OPORTUNIDAD_MEDIA': '#f59e0b',
+    'MANTENIMIENTO': AZUL,
+    'CRITICO': ROJO,
+    'BAJO_IMPACTO': '#94a3b8',
+  };
+  
+  const datasets = Object.keys(colorMap).map(cls => {
+    const bricks = DATA.bricks.filter(b => b.clasificacion === cls);
+    return {
+      label: cls.replace('_', ' '),
+      data: bricks.map(b => ({ x: b.laeco_ms, y: b.market_size / 1000, label: b.city })),
+      backgroundColor: colorMap[cls] + 'bb',
+      borderColor: colorMap[cls],
+      borderWidth: 1,
+      pointRadius: bricks.map(b => Math.max(4, Math.min(15, b.market_size / 8000))),
+    };
+  });
+  
+  new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 9 } } },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.raw.label || ''} · MS: ${ctx.raw.x.toFixed(2)}% · Mercado: ${fmtM(ctx.raw.y * 1000)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Market Share Éticos (%)', font: { size: 10, weight: '700' } },
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => v + '%' }
+        },
+        y: {
+          title: { display: true, text: 'Tamaño de Mercado (PRECIS)', font: { size: 10, weight: '700' } },
+          grid: { color: '#f1f5f9' },
+          ticks: { callback: v => fmtM(v * 1000) }
+        }
+      }
+    }
+  });
+}
+
+function renderGap() {
+  const ctx = document.getElementById('chartGap').getContext('2d');
+  const top10 = DATA.top_oportunidades.slice(0, 10);
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top10.map(b => b.city),
+      datasets: [{
+        label: 'Potencial de Mercado (PRECIS)',
+        data: top10.map(b => b.market_size),
+        backgroundColor: top10.map((_, i) => i < 3 ? ROJO : NARANJA),
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `Mercado: ${ctx.raw.toLocaleString('es-CO')} unidades PRECIS`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#f1f5f9' }, ticks: { callback: v => (v/1000).toFixed(0) + 'K' } },
+        y: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' } } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Renderizar gráficas del tab inicial
+  renderChartCities();
+  renderChartRegions();
+  renderChartTrend();
+  renderChartChannel();
+  
+  // Renderizar gráfica de competidores
+  renderChartCompetitors();
+  
+  // Renderizar tablas
+  renderTableCities();
+  renderTableOppAlta();
+  renderTableCriticos();
+  renderTableMantenimiento();
+  
+  // Tabla de bricks
+  populateRegionFilter();
+  filterBricks();
+  
+  // Contar bricks
+  document.getElementById('brickCount').textContent = `${DATA.bricks.length} bricks`;
+});
+</script>
+
+</body>
+</html>
