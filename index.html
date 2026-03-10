@@ -151,6 +151,7 @@ tbody td{padding:8px 10px;vertical-align:middle;}
   <div class="tab" onclick="showTab('roadmap',this)">🚀 Roadmap</div>
   <div class="tab" onclick="showTab('posicionamiento',this)">📈 Posicionamiento</div>
   <div class="tab" onclick="showTab('mapa',this)">🗺️ Mapas</div>
+  <div class="tab" onclick="showTab('competidores',this)">⚔️ Competidores</div>
 </div>
 
 <div class="main">
@@ -416,6 +417,82 @@ tbody td{padding:8px 10px;vertical-align:middle;}
   </div>
 </div>
 
+
+<!-- ===== COMPETIDORES ===== -->
+<div id="tab-competidores" class="section">
+  <div class="section-title">⚔️ Ranking Competitivo por Brick</div>
+  <div class="insight">
+    Análisis de las <strong>15 cadenas farmacéuticas</strong> presentes en el canal Pharmacy Chains. Éticos lidera en <strong id="comp-lideres-n">...</strong> bricks, ocupa posición #2 en <strong id="comp-2nd-n">...</strong> y está en posición #3 o inferior en <strong id="comp-3rd-n">...</strong>. El principal competidor por número de bricks liderados es <strong id="comp-rival-n">...</strong>.
+  </div>
+
+  <!-- KPIs de posición -->
+  <div class="kpi-grid" id="comp-kpi-grid" style="grid-template-columns:repeat(6,1fr);"></div>
+
+  <!-- Gráfica de liderazgo por cadena -->
+  <div class="grid-2" style="margin-bottom:24px">
+    <div class="card">
+      <div class="card-title">🏆 Bricks Liderados por Cadena</div>
+      <div class="chart-wrap"><canvas id="chartLideres"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Market Share Total por Cadena (Pharmacy Chains)</div>
+      <div class="chart-wrap"><canvas id="chartMSCadenas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-bar">
+    <div class="filter-group"><label>Buscar Brick / Ciudad</label><input type="text" id="compSearch" placeholder="Ej: Barranquilla, 1101..." oninput="filterComp()"></div>
+    <div class="filter-group"><label>Posición Éticos</label>
+      <select id="compPosFilter" onchange="filterComp()">
+        <option value="">Todas</option>
+        <option value="1">#1 Líder</option>
+        <option value="2">#2 Segundo</option>
+        <option value="3">#3 Tercero</option>
+        <option value="4+">#4 o inferior</option>
+        <option value="0">Sin presencia</option>
+      </select>
+    </div>
+    <div class="filter-group"><label>Líder del Brick</label>
+      <select id="compLiderFilter" onchange="filterComp()">
+        <option value="">Todas las cadenas</option>
+      </select>
+    </div>
+    <div class="filter-group"><label>Departamento</label>
+      <select id="compStateFilter" onchange="filterComp()">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabla de ranking -->
+  <div class="card">
+    <div class="card-title">Ranking de Cadenas por Brick <span id="comp-count" style="font-size:11px;font-weight:400;color:var(--gris-d)"></span></div>
+    <div class="table-wrap">
+      <table id="compTable">
+        <thead>
+          <tr>
+            <th>Brick</th>
+            <th>Ciudad</th>
+            <th>Depto</th>
+            <th>Mercado (PRECIS)</th>
+            <th>Pos. Éticos</th>
+            <th>MS Éticos</th>
+            <th>#1 Líder</th>
+            <th>MS Líder</th>
+            <th>#2</th>
+            <th>#3</th>
+            <th>Cadenas</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="compTbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="compPag"></div>
+  </div>
+</div>
+
 </div><!-- /main -->
 
 <!-- MODAL -->
@@ -444,6 +521,7 @@ let DATA = {
   ]
 };
 let bPage=1, bPerPage=25, bFiltered=[];
+let COMP_DATA=null, compPage=1, compPerPage=30, compFiltered=[], compChartsBuilt=false;
 
 fetch('dashboard_data_v3.json').then(r=>r.json()).then(d=>{
   DATA={...DATA,...d};
@@ -474,6 +552,7 @@ function showTab(id,el){
   el.classList.add('active');
   if(id==='posicionamiento') loadRanking();
   if(id==='mapa') loadMapa();
+  if(id==='competidores') loadCompetidores();
 }
 
 // ============================================================
@@ -952,6 +1031,214 @@ function clsPill(cls){
   const[c,l]=m[cls]||['pill-bajo',cls];
   return `<span class="pill ${c}">${l}</span>`;
 }
+
+// ============================================================
+// COMPETIDORES
+// ============================================================
+const CADENA_COLORS = {
+  'La Economía':    '#1C58B7',
+  'Cruz Verde':     '#16A34A',
+  'Farmatodo':      '#E1251B',
+  'La Rebaja':      '#EA580C',
+  'Alemana':        '#7C3AED',
+  'La Garantía':    '#0891B2',
+  'Colsubsidio':    '#DB2777',
+  'Cafam':          '#D97706',
+  'Olímpica':       '#059669',
+  'Farmanorte':     '#6366F1',
+  'Farmaya':        '#F59E0B',
+  'Comfandi':       '#10B981',
+  'Locatel':        '#8B5CF6',
+  'Drogas La Rebaja':'#EF4444',
+  'Otra Cadena':    '#9CA3AF',
+  'Otros':          '#D1D5DB',
+};
+
+function posLabel(r){
+  if(!r) return '<span style="color:var(--gris-d)">—</span>';
+  const colors=['','var(--verde)','var(--azul)','var(--naranja)','var(--rojo)'];
+  const c = r<=4 ? colors[r] : 'var(--rojo)';
+  const medal = r===1?'🥇 ':r===2?'🥈 ':r===3?'🥉 ':'';
+  return `<span style="font-weight:800;color:${c}">${medal}#${r}</span>`;
+}
+
+function loadCompetidores(){
+  if(COMP_DATA){
+    if(!compChartsBuilt) buildCompCharts();
+    return;
+  }
+  fetch('competidores_data.json').then(r=>r.json()).then(d=>{
+    COMP_DATA = d;
+    compFiltered = [...d.bricks];
+    buildCompKPIs();
+    buildCompCharts();
+    populateCompFilters();
+    renderCompTable();
+  }).catch(e=>console.error('Error cargando competidores:',e));
+}
+
+function buildCompKPIs(){
+  const d = COMP_DATA;
+  const pos = d.posicion_eticos || {};
+  const p1 = pos['#1']||0, p2=pos['#2']||0, p3=pos['#3']||0, p4=pos['#4']||0, p5=pos['#5']||0;
+  const p6plus = Object.entries(pos).filter(([k])=>k>='#6').reduce((s,[,v])=>s+v,0);
+  const sinPresencia = d.total_bricks - d.bricks_con_eticos;
+
+  // Actualizar insight
+  const rival = Object.entries(d.lideres_por_cadena||{}).filter(([k])=>k!=='La Economía').sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('comp-lideres-n').textContent = p1 + ' bricks';
+  document.getElementById('comp-2nd-n').textContent = p2 + ' bricks';
+  document.getElementById('comp-3rd-n').textContent = (p3+p4+p5+p6plus) + ' bricks';
+  document.getElementById('comp-rival-n').textContent = rival ? `${rival[0]} (${rival[1]} bricks)` : '...';
+
+  const grid = document.getElementById('comp-kpi-grid');
+  grid.innerHTML = `
+    <div class="kpi-card green"><div class="kpi-label">🥇 Líder (#1)</div><div class="kpi-value" style="color:var(--verde)">${p1}</div><div class="kpi-sub">bricks donde Éticos lidera</div></div>
+    <div class="kpi-card"><div class="kpi-label">🥈 Segundo (#2)</div><div class="kpi-value">${p2}</div><div class="kpi-sub">bricks en 2° posición</div></div>
+    <div class="kpi-card"><div class="kpi-label">🥉 Tercero (#3)</div><div class="kpi-value">${p3}</div><div class="kpi-sub">bricks en 3° posición</div></div>
+    <div class="kpi-card yellow"><div class="kpi-label">#4 – #5</div><div class="kpi-value" style="color:#D97706">${p4+p5}</div><div class="kpi-sub">bricks rezagados</div></div>
+    <div class="kpi-card red"><div class="kpi-label">#6 o inferior</div><div class="kpi-value" style="color:var(--rojo)">${p6plus}</div><div class="kpi-sub">bricks críticos</div></div>
+    <div class="kpi-card"><div class="kpi-label">Sin Presencia</div><div class="kpi-value" style="color:var(--gris-d)">${sinPresencia}</div><div class="kpi-sub">bricks sin Éticos</div></div>
+  `;
+}
+
+function buildCompCharts(){
+  if(compChartsBuilt) return;
+  compChartsBuilt = true;
+  const d = COMP_DATA;
+
+  // Chart 1: Bricks liderados por cadena
+  const lideres = Object.entries(d.lideres_por_cadena||{}).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const lColors = lideres.map(([k])=>CADENA_COLORS[k]||'#9CA3AF');
+  new Chart(document.getElementById('chartLideres'),{
+    type:'bar',
+    data:{labels:lideres.map(([k])=>k), datasets:[{data:lideres.map(([,v])=>v), backgroundColor:lColors, borderRadius:6}]},
+    options:{indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, datalabels:{color:'white',font:{weight:'bold',size:11},formatter:v=>v}},
+      scales:{x:{grid:{color:'#F3F4F6'}}, y:{grid:{display:false}}}
+    }
+  });
+
+  // Chart 2: MS total por cadena
+  const cadenaMS = {};
+  d.bricks.forEach(b=>{
+    b.ranking.forEach(r=>{
+      cadenaMS[r.cadena] = (cadenaMS[r.cadena]||0) + r.precis;
+    });
+  });
+  const msEntries = Object.entries(cadenaMS).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const total = msEntries.reduce((s,[,v])=>s+v,0);
+  new Chart(document.getElementById('chartMSCadenas'),{
+    type:'doughnut',
+    data:{labels:msEntries.map(([k])=>k), datasets:[{data:msEntries.map(([,v])=>(v/total*100).toFixed(1)), backgroundColor:msEntries.map(([k])=>CADENA_COLORS[k]||'#9CA3AF')}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},
+        datalabels:{color:'white',font:{weight:'bold',size:10},formatter:(v,ctx)=>v>3?v+'%':''}}
+    }
+  });
+}
+
+function populateCompFilters(){
+  if(!COMP_DATA) return;
+  // Lideres
+  const lideres = [...new Set(COMP_DATA.bricks.map(b=>b.lider))].sort();
+  const lSel = document.getElementById('compLiderFilter');
+  lideres.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; lSel.appendChild(o); });
+  // Departamentos
+  const states = [...new Set(COMP_DATA.bricks.map(b=>b.state))].sort();
+  const sSel = document.getElementById('compStateFilter');
+  states.forEach(s=>{ const o=document.createElement('option'); o.value=s; o.textContent=s; sSel.appendChild(o); });
+}
+
+function filterComp(){
+  if(!COMP_DATA) return;
+  const search = document.getElementById('compSearch').value.toLowerCase();
+  const posF   = document.getElementById('compPosFilter').value;
+  const liderF = document.getElementById('compLiderFilter').value;
+  const stateF = document.getElementById('compStateFilter').value;
+
+  compFiltered = COMP_DATA.bricks.filter(b=>{
+    if(search && !b.brick.toLowerCase().includes(search) && !b.city.toLowerCase().includes(search)) return false;
+    if(stateF && b.state !== stateF) return false;
+    if(liderF && b.lider !== liderF) return false;
+    if(posF){
+      if(posF==='0' && b.eticos_rank !== null) return false;
+      if(posF==='0' && b.eticos_rank === null) return true;
+      if(posF==='4+' && (b.eticos_rank===null || b.eticos_rank < 4)) return false;
+      if(posF!=='4+' && posF!=='0' && b.eticos_rank !== parseInt(posF)) return false;
+    }
+    return true;
+  });
+  compPage = 1;
+  renderCompTable();
+}
+
+function renderCompTable(){
+  if(!COMP_DATA) return;
+  const tbody = document.getElementById('compTbody');
+  const start = (compPage-1)*compPerPage;
+  const page  = compFiltered.slice(start, start+compPerPage);
+  document.getElementById('comp-count').textContent = `(${compFiltered.length} bricks)`;
+
+  tbody.innerHTML = page.map(b=>{
+    const r2 = b.ranking[1];
+    const r3 = b.ranking[2];
+    const posCell = posLabel(b.eticos_rank);
+    const msCell  = b.eticos_rank ? `<div class="ms-bar"><div class="ms-bar-bg"><div class="ms-bar-fill" style="width:${Math.min(b.eticos_ms,100)}%;background:#1C58B7"></div></div><span>${b.eticos_ms.toFixed(1)}%</span></div>` : '<span style="color:var(--gris-d)">—</span>';
+    const liderColor = CADENA_COLORS[b.lider]||'#9CA3AF';
+    return `<tr>
+      <td style="font-size:10px;color:var(--gris-d)">${b.brick_code}</td>
+      <td style="font-weight:700">${b.city}</td>
+      <td style="font-size:11px">${b.state}</td>
+      <td style="font-size:11px">${(b.total_precis/1000).toFixed(0)}K</td>
+      <td style="text-align:center">${posCell}</td>
+      <td>${msCell}</td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:10.5px;font-weight:700;background:${liderColor}22;color:${liderColor}">${b.lider}</span></td>
+      <td style="font-size:11px">${b.lider_ms.toFixed(1)}%</td>
+      <td style="font-size:11px;color:var(--gris-d)">${r2?r2.cadena:'—'}</td>
+      <td style="font-size:11px;color:var(--gris-d)">${r3?r3.cadena:'—'}</td>
+      <td style="text-align:center">${b.n_cadenas}</td>
+      <td><button class="btn-detail" onclick="showCompDetail(${b.brick_code})">Ver</button></td>
+    </tr>`;
+  }).join('');
+
+  // Paginación
+  const totalPages = Math.ceil(compFiltered.length/compPerPage);
+  const pag = document.getElementById('compPag');
+  pag.innerHTML = '';
+  if(totalPages<=1) return;
+  const addBtn=(label,page,active)=>{ const b=document.createElement('button'); b.textContent=label; if(active)b.classList.add('active'); b.onclick=()=>{compPage=page;renderCompTable();}; pag.appendChild(b); };
+  if(compPage>1) addBtn('←',compPage-1,false);
+  for(let i=Math.max(1,compPage-2);i<=Math.min(totalPages,compPage+2);i++) addBtn(i,i,i===compPage);
+  if(compPage<totalPages) addBtn('→',compPage+1,false);
+}
+
+function showCompDetail(brickCode){
+  if(!COMP_DATA) return;
+  const b = COMP_DATA.bricks.find(x=>x.brick_code===brickCode);
+  if(!b) return;
+  const rows = b.ranking.map((r,i)=>{
+    const isEticos = r.cadena==='La Economía';
+    const color = CADENA_COLORS[r.cadena]||'#9CA3AF';
+    const bg = isEticos ? 'background:var(--azul-l);font-weight:800;' : '';
+    return `<tr style="${bg}">
+      <td style="text-align:center;font-weight:800">${posLabel(r.rank)}</td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;background:${color}22;color:${color}">${r.cadena}</span></td>
+      <td style="font-size:11px">${(r.precis/1000).toFixed(1)}K</td>
+      <td><div class="ms-bar"><div class="ms-bar-bg"><div class="ms-bar-fill" style="width:${Math.min(r.ms_pct,100)}%;background:${color}"></div></div><span style="font-size:11px">${r.ms_pct.toFixed(1)}%</span></div></td>
+    </tr>`;
+  }).join('');
+
+  openModal(
+    `⚔️ ${b.city} — Brick ${b.brick_code}`,
+    `<div style="margin-bottom:12px;font-size:12px;color:var(--gris-d)">${b.state} · ${b.region} · Mercado: ${(b.total_precis/1000).toFixed(0)}K PRECIS · ${b.n_cadenas} cadenas presentes</div>
+    <table style="width:100%">
+      <thead><tr><th>Pos.</th><th>Cadena</th><th>PRECIS</th><th>Market Share</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`
+  );
+}
+
 </script>
 </body>
 </html>
